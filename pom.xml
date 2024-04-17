@@ -256,7 +256,7 @@
         <profile>
             <id>spark-3.0</id>
             <properties>
-                <spark.version>3.0.0</spark.version>
+                <spark.version>3.4.2</spark.version>
             </properties>
             <modules>
                 <module>nebula-exchange_spark_3.0</module>
