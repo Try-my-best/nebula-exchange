@@ -1,0 +1,67 @@
+# This workflow will build a Java project with Maven
+# For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-maven
+
+name: snapshot
+
+on:
+  push:
+    branches: [ master ]
+  schedule:
+    - cron: '0 6 * * *'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up JDK 1.8
+      uses: actions/setup-java@v1
+      with:
+        java-version: 1.8
+
+    - name: Cache the Maven packages to speed up build
+      uses: actions/cache@v2
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-maven-
+
+    - name: Install nebula-graph
+      run: |
+        mkdir tmp
+        pushd tmp
+        git clone https://github.com/vesoft-inc/nebula-docker-compose.git
+        pushd nebula-docker-compose/
+        cp ../../exchange-common/src/test/resources/docker-compose.yaml .
+        docker-compose up -d
+        sleep 10
+        popd
+        popd
+
+    - name: Build with Maven
+      run: |
+        mvn clean package -pl nebula-exchange_spark_2.2 -am -Pscala-2.11 -Pspark-2.2
+        mvn clean package -pl nebula-exchange_spark_2.4 -am -Pscala-2.11 -Pspark-2.4
+        mvn clean package -pl nebula-exchange_spark_3.0 -am -Pscala-2.12 -Pspark-3.0
+
+    - name: upload Exchange with Spark 2.2 to snapshot assets
+      uses: actions/upload-artifact@v2
+      with:
+        name: nebula-exchange_spark_2.2-3.0-SNAPSHOT.jar
+        path:
+          nebula-exchange_spark_2.2/target/nebula-exchange_spark_2.2-3.0-SNAPSHOT.jar
+
+    - name: upload Exchange with Spark 2.4 to snapshot assets
+      uses: actions/upload-artifact@v2
+      with:
+        name: nebula-exchange_spark_2.4-3.0-SNAPSHOT.jar
+        path:
+          nebula-exchange_spark_2.4/target/nebula-exchange_spark_2.4-3.0-SNAPSHOT.jar
+
+    - name: upload Exchange with Spark 3.0 to snapshot assets
+      uses: actions/upload-artifact@v2
+      with:
+        name: nebula-exchange_spark_3.0-3.0-SNAPSHOT.jar
+        path:
+          nebula-exchange_spark_3.0/target/nebula-exchange_spark_3.0-3.0-SNAPSHOT.jar
